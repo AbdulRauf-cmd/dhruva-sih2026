@@ -1,0 +1,16 @@
+{
+  "name": "DHRUVA",
+  "short_name": "DHRUVA",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "description": "Polar Expedition Platform",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}

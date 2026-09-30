@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # PostgreSQL for HQ
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: dhruva
+      POSTGRES_USER: dhruva
+      POSTGRES_PASSWORD: dhruva123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dhruva"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # HQ Backend Node
+  hq:
+    build: ./backend
+    environment:
+      DHRUVA_NODE_ROLE: hq
+      DHRUVA_NODE_ID: hq
+      DHRUVA_DATABASE_URL: postgresql://dhruva:dhruva123@postgres:5432/dhruva
+      DHRUVA_JWT_SECRET: dhruva-sih2026-secret-key
+      DHRUVA_DEMO_MODE: "true"
+      DHRUVA_HQ_URL: http://hq:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Station Maitri Backend Node
+  station-maitri:
+    build: ./backend
+    environment:
+      DHRUVA_NODE_ROLE: station
+      DHRUVA_NODE_ID: maitri
+      DHRUVA_DATABASE_URL: sqlite:///./dhruva_maitri.db
+      DHRUVA_JWT_SECRET: dhruva-sih2026-secret-key
+      DHRUVA_DEMO_MODE: "true"
+      DHRUVA_HQ_URL: http://hq:8000
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+
+  # Station Bharati Backend Node
+  station-bharati:
+    build: ./backend
+    environment:
+      DHRUVA_NODE_ROLE: station
+      DHRUVA_NODE_ID: bharati
+      DHRUVA_DATABASE_URL: sqlite:///./dhruva_bharati.db
+      DHRUVA_JWT_SECRET: dhruva-sih2026-secret-key
+      DHRUVA_DEMO_MODE: "true"
+      DHRUVA_HQ_URL: http://hq:8000
+    ports:
+      - "8002:8000"
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - hq
+    restart: unless-stopped
+
+volumes:
+  pgdata:
