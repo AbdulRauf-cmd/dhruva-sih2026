@@ -1,4 +1,4 @@
-export interface User { id: string; username: string; role: string; node_id?: string; }
+export interface User { id: string; username: string; role: string; station_id?: string; node_id?: string; full_name?: string; }
 export interface TokenResponse { access_token: string; token_type: string; user: User; }
 export interface Expedition { id: string; name: string; status: string; }
 export interface Leg { id: string; expedition_id: string; vessel: string; from_node: string; to_node: string; start_date: string; end_date: string; status: string; }

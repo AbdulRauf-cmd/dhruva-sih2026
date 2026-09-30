@@ -15,29 +15,66 @@ const NAV_ITEMS = [
   { path: '/demo', label: 'Demo', icon: Play },
 ];
 
+// Role-based navigation permissions
+const ROLE_PERMISSIONS: Record<string, string[]> = {
+  HQ_PLANNER: ['/', '/expeditions', '/cargo', '/inventory', '/personnel', '/emergency', '/audit', '/sync', '/demo'],
+  VOYAGE_LEADER: ['/', '/expeditions', '/cargo', '/personnel', '/emergency', '/demo'],
+  STATION_LEAD: ['/', '/cargo', '/inventory', '/personnel', '/emergency', '/sync', '/demo'],
+  MEDICAL_OFFICER: ['/', '/inventory', '/personnel', '/emergency', '/demo'],
+};
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const allowedPaths = (user?.role && ROLE_PERMISSIONS[user.role]) || ROLE_PERMISSIONS.HQ_PLANNER;
+  const visibleNavItems = NAV_ITEMS.filter(item => allowedPaths.includes(item.path));
+
+  const roleLabels: Record<string, string> = {
+    HQ_PLANNER: 'HQ Master Planner',
+    VOYAGE_LEADER: 'Voyage Leader',
+    STATION_LEAD: 'Station Lead',
+    MEDICAL_OFFICER: 'Medical Officer',
+  };
 
   return (
     <div className="flex h-screen bg-slate-900 text-white overflow-hidden">
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-800 transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between h-16 px-4 bg-slate-900 border-b border-slate-700">
-          <span className="text-xl font-bold tracking-wider">DHRUVA</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-bold tracking-wider text-blue-400">DHRUVA</span>
+            <span className="text-xs px-1.5 py-0.5 bg-blue-900/60 text-blue-300 rounded border border-blue-700/50">2026</span>
+          </div>
           <button className="md:hidden" onClick={() => setSidebarOpen(false)}>
             <Menu className="w-6 h-6" />
           </button>
         </div>
-        <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100vh-4rem)]">
-          {NAV_ITEMS.map((item) => {
+
+        {/* User Role Card in Sidebar */}
+        <div className="p-3 mx-3 my-3 bg-slate-900/80 rounded-lg border border-slate-700/60">
+          <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Active Role</div>
+          <div className="font-medium text-sm text-blue-300">{roleLabels[user?.role || ''] || user?.role}</div>
+          <div className="text-xs text-slate-400 truncate">{user?.full_name || user?.username}</div>
+          {user?.station_id && (
+            <div className="mt-1 text-[11px] text-amber-400 font-mono">Station: {user.station_id.toUpperCase()}</div>
+          )}
+        </div>
+
+        <nav className="p-3 space-y-1.5 overflow-y-auto h-[calc(100vh-10.5rem)]">
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const active = location.pathname === item.path;
             return (
-              <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${active ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white'}`} onClick={() => setSidebarOpen(false)}>
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${active ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-700 hover:text-white'}`}
+                onClick={() => setSidebarOpen(false)}
+              >
                 <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium text-sm">{item.label}</span>
               </Link>
             );
           })}
@@ -48,25 +85,31 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
         <header className="flex items-center justify-between h-16 px-4 sm:px-6 bg-slate-800 border-b border-slate-700">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button className="md:hidden text-slate-300 hover:text-white" onClick={() => setSidebarOpen(true)}>
               <Menu className="w-6 h-6" />
             </button>
-            <div className="hidden sm:block">
-              <span className="font-semibold text-lg">{user?.node_id || 'HQ Planner'}</span>
-              <span className="ml-2 px-2 py-1 text-xs bg-slate-700 rounded-full text-slate-300">{user?.role}</span>
+            <div>
+              <span className="font-semibold text-base sm:text-lg">{user?.full_name || user?.username}</span>
+              <span className="ml-2.5 px-2.5 py-0.5 text-xs bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full font-semibold">
+                {user?.role?.replace('_', ' ')}
+              </span>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1 bg-slate-700 rounded-full">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 px-3 py-1 bg-slate-700/80 rounded-full border border-slate-600/50">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-              <span className="text-sm font-medium">Link UP</span>
+              <span className="text-xs sm:text-sm font-medium text-slate-200">
+                {user?.station_id ? `${user.station_id.toUpperCase()} (LINK UP)` : 'HQ NODE (ONLINE)'}
+              </span>
             </div>
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="text-sm font-medium">{user?.username}</span>
-            </div>
-            <button onClick={logout} className="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors">
-              <LogOut className="w-5 h-5" />
+            <button
+              onClick={logout}
+              title="Sign Out"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors text-sm"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </header>
